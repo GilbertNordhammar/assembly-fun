@@ -1,12 +1,19 @@
-$source_dir = "."
-$build_dir = "build"
-$target = $args[0]
+$SOLUTION_DIR = "AssemblyFun"
+$TARGET = $args[0]
+$EXE_PATH = $args[1]
 
-if ( ("$target" -ne "Debug") -and ("$target" -ne "Release") )
+if ( ("$TARGET" -ne "Debug") -and ("$TARGET" -ne "Release") )
 {
     Write-Output "ERROR: Need to pass build target 'Debug' or 'Release'"
     return
 }
 
-& cmake --build build --target data-oriented-design --config $target
-& "./$build_dir/$target/data-oriented-design.exe"
+if ("$EXE_PATH" -eq "")
+{
+    Write-Output "ERROR: Must path to .exe"
+    return
+}
+
+& cmake --build build --target data-oriented-design --config $TARGET
+# & "./$SOLUTION_DIR/$TARGET/$PROJECT.exe"
+& "./AssemblyFun/$EXE_PATH"
