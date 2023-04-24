@@ -1,0 +1,1 @@
+// Visual Studio C++ projects expect atleast one cpp file to be present even for pure assembly programs

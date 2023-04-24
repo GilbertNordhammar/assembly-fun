@@ -7,3 +7,4 @@ set(CMAKE_CXX_STANDARD 17)
 enable_language(ASM_MASM)
 
 add_subdirectory(Examples/Hello_World)
+add_subdirectory(Examples/Snake)
