@@ -19,6 +19,6 @@ namespace SomeNamespace
 {
     void Foo()
     {
-        std::cout << "Calling SomeNamespace::Foo()";
+        std::cout << "Calling SomeNamespace::Foo()" << std::endl;
     }
 }
