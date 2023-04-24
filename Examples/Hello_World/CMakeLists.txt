@@ -24,7 +24,7 @@ target_compile_options(${TARGET_NAME} PRIVATE ${COMPILE_OPTIONS_ALL})
 target_compile_definitions(${TARGET_NAME} PRIVATE ${COMPILE_DEFINITIONS_ALL})
 
 # Set config for Debug build target
-set(COMPILE_OPTIONS_DEBUG -Wall)
+set(COMPILE_OPTIONS_DEBUG /Zi)
 set(COMPILE_DEFINITIONS_DEBUG DEBUG_BUILD)
 target_compile_options(${TARGET_NAME} PRIVATE $<$<CONFIG:Debug>:${COMPILE_OPTIONS_DEBUG}>)
 target_compile_definitions(${TARGET_NAME} PRIVATE $<$<CONFIG:Debug>:${COMPILE_DEFINITIONS_DEBUG}>)
