@@ -4,6 +4,11 @@ bFoo2 byte 80
 wFoo3 word 0
 
 .code
+
+extern SDL_Init : proc
+
+extern InitSDL : proc
+
 extern HelloWorldCStyle : proc
 extern GetSum : proc
 
@@ -13,7 +18,14 @@ alias <Foo> = <?Foo@SomeNamespace@@YAXXZ>
 extern ?HelloWorldCPlusPlusStyle@@YAXXZ : proc
 alias <HelloWorldCPlusPlusStyle> = <?HelloWorldCPlusPlusStyle@@YAXXZ>
 
-mainz proc
+main proc
+	sub rsp, 20h
+	mov rcx, 32
+	call SDL_Init
+	add rsp, 20h
+
+	;call InitSDL
+
 	call HelloWorldCStyle
 	call HelloWorldCPlusPlusStyle
 	
@@ -29,6 +41,6 @@ mainz proc
 	call Foo
 	
 	ret
-mainz endp
+main endp
 
 end
