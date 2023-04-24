@@ -41,3 +41,25 @@ foreach(SINGLE_SRC_FILE ${SRC_FILES})
     string(REPLACE "/" "\\" SRC_GROUP ${PARENT_DIR})
     source_group(${SRC_GROUP} FILES ${SINGLE_SRC_FILE})
 endforeach()
+
+# Link SDK libraries
+set(SDK_LIBS_DEBUG
+    ${SDK_SDL_DIR}/lib/x64/Debug/SDL3.lib
+)
+
+set(SDK_LIBS_RELEASE 
+    ${SDK_SDL_DIR}/lib/x64/Release/SDL3.lib
+)
+
+target_include_directories(${TARGET_NAME} PRIVATE ${SDK_SDL_DIR}/include)
+
+target_link_libraries(${TARGET_NAME} PRIVATE
+    $<$<CONFIG:Debug>:${SDK_LIBS_DEBUG}>
+    $<$<CONFIG:Release>:${SDK_LIBS_DEBUG}>
+)
+
+# TODO: Copy DLL as post build step
+# add_custom_command (TARGET ${TARGET_NAME} POST_BUILD
+#     COMMAND ${CMAKE_COMMAND} -E copy_if_different
+#     $<TARGET_FILE:${SDK_SDL_DIR}/lib/x64/Debug/SDL3.dll> $<TARGET_FILE_DIR:C:/Users/gtnr/Documents/code/assembly-fun/foo>
+# )

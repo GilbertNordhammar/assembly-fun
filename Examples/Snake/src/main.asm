@@ -13,7 +13,7 @@ alias <Foo> = <?Foo@SomeNamespace@@YAXXZ>
 extern ?HelloWorldCPlusPlusStyle@@YAXXZ : proc
 alias <HelloWorldCPlusPlusStyle> = <?HelloWorldCPlusPlusStyle@@YAXXZ>
 
-main proc
+mainz proc
 	call HelloWorldCStyle
 	call HelloWorldCPlusPlusStyle
 	
@@ -29,6 +29,6 @@ main proc
 	call Foo
 	
 	ret
-main endp
+mainz endp
 
 end
