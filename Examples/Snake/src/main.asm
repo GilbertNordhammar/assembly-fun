@@ -3,54 +3,46 @@ bFoo byte 78
 bFoo2 byte 80
 wFoo3 word 0
 
+; SDL variables
+SDL_INIT_VIDEO qword 32
+
+; Constants
+WINDOW_WIDTH qword 640
+WINDOW_HEIGHT qword 480
+
+; Globals
+bAppName byte "Snake", 0
+
 .code
 
+; SDL functions
 extern SDL_Init : proc
+extern SDL_CreateWindow : proc
 
-extern InitSDLCPlusPlus : proc
-
-extern HelloWorldCStyle : proc
-extern GetSum : proc
-
-extern ?Foo@SomeNamespace@@YAXXZ : proc
-alias <Foo> = <?Foo@SomeNamespace@@YAXXZ>
-
-extern ?HelloWorldCPlusPlusStyle@@YAXXZ : proc
-alias <HelloWorldCPlusPlusStyle> = <?HelloWorldCPlusPlusStyle@@YAXXZ>
-
-mainz proc
-	sub rsp, 20h
-	mov rcx, 32
-	call SDL_Init
-	add rsp, 20h
-
-	;call InitSDL
-
-	call HelloWorldCStyle
-	call HelloWorldCPlusPlusStyle
-	
-	sub rsp, 30h
-	mov rcx, 1
-	mov rdx, 2
-	mov r8, 3
-	mov r9, 4
-	mov dword ptr [rsp + 20h], 5
-	call GetSum
-	add rsp, 30h
-	
-	call Foo
+main proc
+	call InitSDL
 	
 	ret
-mainz endp
+main endp
 
 InitSDL proc
+	; Epilogue
 	sub rsp, 32
-	
-	mov rcx, 32
-	push rcx
-	call SDL_Init
-	add rsp, 8
 
+	sub rsp, 32
+	mov rcx, SDL_INIT_VIDEO
+	call SDL_Init
+	add rsp, 32
+
+	sub rsp, 32
+	lea rcx, [bAppName]
+	mov rdx, WINDOW_WIDTH
+	mov r8, WINDOW_HEIGHT
+	mov r9, 0
+	call SDL_CreateWindow
+	add rsp, 32
+
+	; Prologue
 	add rsp, 32
 
 	ret
