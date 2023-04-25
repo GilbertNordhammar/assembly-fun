@@ -30,6 +30,8 @@ CALL_PROC macro func:REQ
 	add rsp, 32
 endm
 
+
+
 ; Constants
 WINDOW_WIDTH equ 640
 WINDOW_HEIGHT equ 480
@@ -43,53 +45,61 @@ bRendererPtr qword 0
 ; Functions
 
 main proc
-	CALL_PROC InitSDL
+	call InitSDL
 	
-	;mov rcx, 3000
-	;CALL_PROC SDL_Delay
+	sub rsp, 32
+	mov rcx, 100
+	call SDL_Delay
+	add rsp, 32
 
-	sub rsp, 8
 	call QuitSDL
-	add rsp, 8
 
 	ret
 main endp
 
 InitSDL proc
-	mov rcx, SDL_INIT_VIDEO
-	CALL_PROC SDL_Init 
+	mov rax, [rsp + 8]
 
+	sub rsp, 32
+	mov rcx, SDL_INIT_VIDEO
+	call SDL_Init
+	add rsp, 32
+
+	sub rsp, 32
 	lea rcx, [bAppName]
 	mov rdx, WINDOW_WIDTH
 	mov r8, WINDOW_HEIGHT
 	mov r9, 0
-	CALL_PROC SDL_CreateWindow
+	call SDL_CreateWindow
 	mov bWindowPtr, rax
+	add rsp, 32
 
+	sub rsp, 32
 	mov rcx, rax
 	mov rdx, 0
 	mov r8, SDL_RENDERER_ACCELERATED
 	or r8, SDL_RENDERER_PRESENTVSYNC
-	CALL_PROC SDL_CreateRenderer
+	call SDL_CreateRenderer
 	mov bRendererPtr, rax
+	add rsp, 32
 
 	ret
 InitSDL endp
 
 QuitSDL proc
-	sub rsp, 8
+	sub rsp, 16
 	mov rcx, bRendererPtr
 	call SDL_DestroyRenderer
-	add rsp, 8
+	add rsp, 16
 
 	sub rsp, 8
 	mov rcx, bWindowPtr
 	call SDL_DestroyWindow
 	add rsp, 8
 
-	sub rsp, 8
+	sub rsp, 16
 	call SDL_Quit
-	add rsp, 8
+	add rsp, 16
 	
 	ret
 QuitSDL endp

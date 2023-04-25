@@ -1,5 +1,15 @@
 #include <iostream>
 
+extern "C" void __cdecl Tjo(int a, int b)
+{
+
+}
+
+extern "C" void __cdecl Moo(int a, int b, int c)
+{
+    Tjo(a, b);
+}
+
 extern "C" int __cdecl GetSum(int a, int b, int c, int d, int e)
 {
     return a + b + c + d + e;

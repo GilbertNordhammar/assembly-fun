@@ -10,6 +10,8 @@ extern GetSum : proc
 extern ?Foo@SomeNamespace@@YAXXZ : proc
 alias <Foo> = <?Foo@SomeNamespace@@YAXXZ>
 
+extern Moo : proc
+
 extern ?HelloWorldCPlusPlusStyle@@YAXXZ : proc
 alias <HelloWorldCPlusPlusStyle> = <?HelloWorldCPlusPlusStyle@@YAXXZ>
 
@@ -26,7 +28,15 @@ main proc
 	call GetSum
 	add rsp, 30h
 	
-	call Foo
+
+	;sub rsp, 24
+	mov rcx, 1
+	mov rdx, 2
+	mov r8, 3
+	mov r9, 4
+	mov dword ptr [rsp + 20h], 5
+	call Moo
+	;add rsp, 24
 	
 	ret
 main endp
