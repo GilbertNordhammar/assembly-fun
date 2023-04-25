@@ -45,16 +45,12 @@ bRendererPtr qword 0
 main proc
 	CALL_PROC InitSDL
 	
-	mov rcx, 3000
-	CALL_PROC SDL_Delay
+	;mov rcx, 3000
+	;CALL_PROC SDL_Delay
 
-	mov rcx, bWindowPtr
-	CALL_PROC SDL_DestroyWindow
-
-	mov rcx, bRendererPtr
-	CALL_PROC SDL_DestroyRenderer
-
-	CALL_PROC SDL_Quit
+	sub rsp, 8
+	call QuitSDL
+	add rsp, 8
 
 	ret
 main endp
@@ -81,7 +77,21 @@ InitSDL proc
 InitSDL endp
 
 QuitSDL proc
+	sub rsp, 8
+	mov rcx, bRendererPtr
+	call SDL_DestroyRenderer
+	add rsp, 8
 
+	sub rsp, 8
+	mov rcx, bWindowPtr
+	call SDL_DestroyWindow
+	add rsp, 8
+
+	sub rsp, 8
+	call SDL_Quit
+	add rsp, 8
+	
+	ret
 QuitSDL endp
 
 end

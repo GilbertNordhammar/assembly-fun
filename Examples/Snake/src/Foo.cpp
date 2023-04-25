@@ -1,7 +1,7 @@
 #include <iostream>
 #include "SDL3/SDL.h"
 
-extern "C" void __cdecl InitSDLCPlusPlus()
+extern "C" void InitSDLCPlusPlus()
 {
     const int WIDTH = 640;
     const int HEIGHT = 480;
