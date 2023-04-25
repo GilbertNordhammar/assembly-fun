@@ -1,5 +1,6 @@
 #include <iostream>
 #include "SDL3/SDL.h"
+//#include <SDL3/SDL_main.h>
 
 extern "C" int __cdecl GetSum(int a, int b, int c, int d, int e)
 {
@@ -24,7 +25,7 @@ namespace SomeNamespace
     }
 }
 
-void main()
+extern "C" void __cdecl InitSDLCPlusPlus()
 {
     const int WIDTH = 640;
     const int HEIGHT = 480;
@@ -38,4 +39,13 @@ void main()
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
+}
+
+extern "C" void InitSDL();
+
+void main()
+{
+    InitSDL();
+
+    //InitSDL();
 }
