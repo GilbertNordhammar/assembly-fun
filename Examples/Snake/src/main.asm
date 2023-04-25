@@ -87,19 +87,19 @@ InitSDL proc
 InitSDL endp
 
 QuitSDL proc
-	sub rsp, 16
+	sub rsp, 32
 	mov rcx, bRendererPtr
 	call SDL_DestroyRenderer
-	add rsp, 16
+	add rsp, 32
 
-	sub rsp, 8
+	sub rsp, 32
 	mov rcx, bWindowPtr
 	call SDL_DestroyWindow
-	add rsp, 8
+	add rsp, 32
 
-	sub rsp, 16
+	sub rsp, 32
 	call SDL_Quit
-	add rsp, 16
+	add rsp, 32
 	
 	ret
 QuitSDL endp
