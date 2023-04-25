@@ -21,7 +21,6 @@ extern "C" void InitSDL();
 
 //void main()
 //{
-//    InitSDL();
-//
+//    InitSDLCPlusPlus();
 //    //InitSDL();
 //}

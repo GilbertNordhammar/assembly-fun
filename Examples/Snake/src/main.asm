@@ -1,51 +1,87 @@
+; ===== SDL =====
+
 .data
-bFoo byte 78
-bFoo2 byte 80
-wFoo3 word 0
-
-; SDL variables
-SDL_INIT_VIDEO qword 32
-
-; Constants
-WINDOW_WIDTH qword 640
-WINDOW_HEIGHT qword 480
-
-; Globals
-bAppName byte "Snake", 0
+; SDL constants
+SDL_INIT_VIDEO equ 32
+SDL_RENDERER_ACCELERATED equ 2
+SDL_RENDERER_PRESENTVSYNC equ 4
 
 .code
-
 ; SDL functions
-extern SDL_Init : proc
 extern SDL_CreateWindow : proc
+extern SDL_CreateRenderer : proc
+extern SDL_Delay : proc
+extern SDL_DestroyRenderer : proc
+extern SDL_DestroyWindow : proc
+extern SDL_Init : proc
+extern SDL_Quit : proc
+
+; ===== Program =====
+.data
+
+; Macros
+CALL_PROC macro func:REQ
+	; Prologue
+	sub rsp, 32
+
+	call func
+
+	; Epilogue
+	add rsp, 32
+endm
+
+; Constants
+WINDOW_WIDTH equ 640
+WINDOW_HEIGHT equ 480
+
+; Variables
+bAppName byte "Snake", 0
+bWindowPtr qword 0
+bRendererPtr qword 0
+
+.code
+; Functions
 
 main proc
-	call InitSDL
+	CALL_PROC InitSDL
 	
+	mov rcx, 3000
+	CALL_PROC SDL_Delay
+
+	mov rcx, bWindowPtr
+	CALL_PROC SDL_DestroyWindow
+
+	mov rcx, bRendererPtr
+	CALL_PROC SDL_DestroyRenderer
+
+	CALL_PROC SDL_Quit
+
 	ret
 main endp
 
 InitSDL proc
-	; Epilogue
-	sub rsp, 32
-
-	sub rsp, 32
 	mov rcx, SDL_INIT_VIDEO
-	call SDL_Init
-	add rsp, 32
+	CALL_PROC SDL_Init 
 
-	sub rsp, 32
 	lea rcx, [bAppName]
 	mov rdx, WINDOW_WIDTH
 	mov r8, WINDOW_HEIGHT
 	mov r9, 0
-	call SDL_CreateWindow
-	add rsp, 32
+	CALL_PROC SDL_CreateWindow
+	mov bWindowPtr, rax
 
-	; Prologue
-	add rsp, 32
+	mov rcx, rax
+	mov rdx, 0
+	mov r8, SDL_RENDERER_ACCELERATED
+	or r8, SDL_RENDERER_PRESENTVSYNC
+	CALL_PROC SDL_CreateRenderer
+	mov bRendererPtr, rax
 
 	ret
 InitSDL endp
+
+QuitSDL proc
+
+QuitSDL endp
 
 end
