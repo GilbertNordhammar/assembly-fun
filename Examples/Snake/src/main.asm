@@ -8,6 +8,28 @@ SDL_RENDERER_ACCELERATED equ 2
 SDL_RENDERER_PRESENTVSYNC equ 4
 SDL_TEXTUREACCESS_STATIC equ 0
 
+; SDL types
+
+SDL_KeyboardEvent struct
+	eventType dd 0   ; ::SDL_EVENT_KEY_DOWN or ::SDL_EVENT_KEY_UP
+    timestamp dq 0   ; In nanoseconds, populated using SDL_GetTicksNS()
+    windowID dd 0    ; The window with keyboard focus, if any
+    state db 0        ; ::SDL_PRESSED or ::SDL_RELEASED
+    repeatKey db 0       ; Non-zero if this is a key repeat
+    padding2 db 0
+    padding3 db 0
+	byte 16 dup(0) ;SDL_Keysym
+    ;SDL_Keysym keysym;  /**< The key that was pressed or released */
+SDL_KeyboardEvent ends
+
+SDL_Event union
+	eventType dd 0
+	key SDL_KeyboardEvent {}
+	byte 128 dup(0)
+SDL_Event ends
+
+SDL_Event_BYTE_SIZE equ 128
+
 .code
 ; SDL functions
 extern SDL_CreateWindow : proc
@@ -23,6 +45,7 @@ extern SDL_RenderPresent : proc
 extern SDL_SetRenderDrawColor : proc
 extern SDL_UpdateTexture : proc
 extern SDL_Quit : proc
+extern SDL_WaitEvent : proc
 
 ; ===== Windows OS =====
 .code
@@ -42,13 +65,25 @@ MEM_RESERVE equ 0x00002000
 PAGE_READWRITE equ 0x04
 
 ; ===== C/C++ =====
+.code
 extern malloc : proc
 extern free : proc
 
 extern Foo : proc
 
-.code
+TRUE equ 1
+FALSE equ 0
+
 ; Utility macros
+
+STACK_ALLOCATE macro size:REQ
+	sub rsp, size
+	mov rax, rsp
+endm
+
+STACK_DEALLOCATE macro size:REQ
+	add rsp, size
+endm
 
 ALLOCATE_SHADOW_SPACE macro
 	sub rsp, 40 ; Allocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from FRAME_PROLOGUE
@@ -131,6 +166,7 @@ bWindowPtr qword 0
 qwRendererPtr qword 0
 bSnakePieceTexturePtr qword 0
 qwSnakePieceTextureBufferPtr qword 0
+qwSDLEventPtr qword 0
 
 .code
 ; Functions
@@ -151,25 +187,35 @@ main endp
 RunGameLoop proc
 	FRAME_PROLOGUE
 
-	; Render stuff
-	mov rcx, qwRendererPtr 
-	CALL_C_FUNC SDL_RenderClear
+	STACK_ALLOCATE SDL_Event_BYTE_SIZE
+	mov r14, rax
 
-	;mov rdx, qwSnakePieceTextureBufferPtr
-	;mov r8, 0
-	;mov r9, 0
-	;CALL_C_FUNC SDL_RenderTexture
+	GameLoop:
+		; Render stuff
+		mov rcx, qwRendererPtr 
+		CALL_C_FUNC SDL_RenderClear
+		
+		mov rdx, qwSnakePieceTextureBufferPtr
+		mov r8, 0
+		mov r9, 0
+		CALL_C_FUNC SDL_RenderTexture
+		
+		mov rcx, qwRendererPtr
+		CALL_C_FUNC SDL_RenderPresent
+		
+		; Poll SDL event
+		mov rcx, r14
+		CALL_C_FUNC SDL_WaitEvent
+		cmp [r14].SDL_KeyboardEvent.eventType, 256
 
-	mov rcx, qwRendererPtr
-	CALL_C_FUNC SDL_RenderPresent
-
-	; Pause execution
-	sub rsp, 32
-	mov rcx, 3000
-	call SDL_Delay
-	add rsp, 32
+		sete r15b
+		not r15b
+		
+		cmp r15b, 255
+		je GameLoop
 
 	FRAME_EPILOGUE
+	
 	ret
 RunGameLoop endp
 
@@ -177,7 +223,6 @@ CreateGameResources proc
 	FRAME_PROLOGUE
 
 	; Create SDL texture
-	
 	mov rcx, qwRendererPtr
 	mov rdx, SDL_PIXELFORMAT_ARGB8888
 	mov r8, SDL_TEXTUREACCESS_STATIC
