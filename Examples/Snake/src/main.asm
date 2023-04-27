@@ -2,24 +2,38 @@
 
 .data
 ; SDL constants
+SDL_EVENT_KEY_DOWN equ 768
+SDL_EVENT_QUIT equ 256
 SDL_INIT_VIDEO equ 32
+SDL_KEYCODE_A equ 97
+SDL_KEYCODE_E equ 101
+SDL_KEYCODE_D equ 100
+SDL_KEYCODE_S equ 115
+SDL_KEYCODE_W equ 119
 SDL_PIXELFORMAT_ARGB8888 equ 372645892
 SDL_RENDERER_ACCELERATED equ 2
 SDL_RENDERER_PRESENTVSYNC equ 4
 SDL_TEXTUREACCESS_STATIC equ 0
 
 ; SDL types
+SDL_Keysym struct
+	scancode dd 0 ; SDL physical key code - see ::SDL_Scancode for details
+	sym dd 0 ; SDL virtual key code - see ::SDL_Keycode for details
+	modifier dw 0 ; current key modifiers
+	unused dd 0
+
+SDL_Keysym ends
 
 SDL_KeyboardEvent struct
 	eventType dd 0   ; ::SDL_EVENT_KEY_DOWN or ::SDL_EVENT_KEY_UP
+	db 4 dup(0)
     timestamp dq 0   ; In nanoseconds, populated using SDL_GetTicksNS()
     windowID dd 0    ; The window with keyboard focus, if any
     state db 0        ; ::SDL_PRESSED or ::SDL_RELEASED
     repeatKey db 0       ; Non-zero if this is a key repeat
     padding2 db 0
     padding3 db 0
-	byte 16 dup(0) ;SDL_Keysym
-    ;SDL_Keysym keysym;  /**< The key that was pressed or released */
+	keysym SDL_Keysym {} ; The key that was pressed or released
 SDL_KeyboardEvent ends
 
 SDL_Event union
@@ -206,13 +220,26 @@ RunGameLoop proc
 		; Poll SDL event
 		mov rcx, r14
 		CALL_C_FUNC SDL_WaitEvent
-		cmp [r14].SDL_KeyboardEvent.eventType, 256
-
-		sete r15b
-		not r15b
 		
-		cmp r15b, 255
-		je GameLoop
+		mov eax, [r14].SDL_KeyboardEvent.eventType
+		mov ecx, [r14].SDL_KeyboardEvent.keysym.sym
+		mov r8d, [r14].SDL_KeyboardEvent.eventType
+
+		cmp eax, SDL_EVENT_QUIT
+			je ExitGameLoop
+		cmp eax, SDL_EVENT_KEY_DOWN
+			jne GameLoop
+			cmp ecx, SDL_KEYCODE_W
+				je ExitGameLoop
+			cmp ecx, SDL_KEYCODE_S
+				je ExitGameLoop
+			cmp ecx, SDL_KEYCODE_A
+				je ExitGameLoop
+			cmp ecx, SDL_KEYCODE_D
+				je ExitGameLoop
+
+		jmp GameLoop
+	ExitGameLoop:
 
 	FRAME_EPILOGUE
 	

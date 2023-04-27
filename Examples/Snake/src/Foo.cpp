@@ -49,7 +49,17 @@ int mainz(int argc, char** argv)
     bool quit = false;
     SDL_Event event;
     
-    int k = sizeof(SDL_Event);
+    int a = offsetof(SDL_Event, key.type);
+    int b = offsetof(SDL_Event, key.timestamp);
+    int c = offsetof(SDL_Event, key.windowID);
+    int d = offsetof(SDL_Event, key.state);
+    int e = offsetof(SDL_Event, key.repeat);
+    int f = offsetof(SDL_Event, key.padding2);
+    int g = offsetof(SDL_Event, key.padding3);
+    int h = offsetof(SDL_Event, key.keysym);
+    int size2 = sizeof(SDL_Keysym);
+    int size = sizeof(SDL_KeyboardEvent);
+
 
     SDL_Init(SDL_INIT_VIDEO);
 
@@ -74,7 +84,7 @@ int mainz(int argc, char** argv)
         SDL_UpdateTexture(texture, nullptr, pixels, TEX_WIDTH * sizeof(Uint32));
 
         SDL_WaitEvent(&event);
-
+        
         switch (event.type)
         {
         case SDL_EVENT_QUIT:
@@ -95,7 +105,14 @@ int mainz(int argc, char** argv)
                 pixels[mouseY * TEX_WIDTH + mouseX] = 0;
             }
             break;
+        case SDL_EVENT_KEY_DOWN:
+            if (event.key.keysym.sym == SDLK_w)
+            {
+                std::cout << "Pressed 'W'" << std::endl;
+            }
+            break;
         }
+
 
         SDL_RenderClear(renderer);
         SDL_RenderTexture(renderer, texture, NULL, &offset);
