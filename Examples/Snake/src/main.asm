@@ -51,53 +51,27 @@ extern Foo : proc
 ; Utility macros
 
 ALLOCATE_SHADOW_SPACE macro
-	sub rsp, 40 ; Allocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from PROC_PROLOGUE
+	sub rsp, 40 ; Allocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from FRAME_PROLOGUE
 endm
 
 DEALLOCATE_SHADOW_SPACE macro
-	add rsp, 40 ; Deallocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from PROC_PROLOGUE
+	add rsp, 40 ; Deallocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from FRAME_PROLOGUE
 endm
 
-PROC_PROLOGUE macro
+FRAME_PROLOGUE macro
 	push rbp
 	mov rbp, rsp
 endm
 
-PROC_EPILOGUE macro
+FRAME_EPILOGUE macro
 	mov rsp, rbp ; Pops all local stack variables
 	pop rbp
 endm
 
-CALL_PROC macro func:REQ
+CALL_C_FUNC macro func:REQ
 	ALLOCATE_SHADOW_SPACE
 	call func
 	DEALLOCATE_SHADOW_SPACE
-endm
-
-CALL_PROC_ARG1 macro func:REQ, arg0:REQ
-	mov rcx, arg0
-	CALL_PROC func
-endm
-
-CALL_PROC_ARG2 macro func:REQ, arg0:REQ, arg1:REQ
-	mov rcx, arg0
-	mov rdx, arg1
-	CALL_PROC func
-endm
-
-CALL_PROC_ARG3 macro func:REQ, arg0:REQ, arg1:REQ, arg2:REQ
-	mov rcx, arg0
-	mov rdx, arg1
-	mov r8d, arg2
-	CALL_PROC func
-endm
-
-CALL_PROC_ARG4 macro func:REQ, arg0:REQ, arg1:REQ, arg2:REQ, arg3:REQ
-	mov rcx, arg0
-	mov rdx, arg1
-	mov r8d, arg2
-	mov r9d, arg3
-	CALL_PROC func
 endm
 
 SYSCALL_GET_SYSTEM_BASIC_INFO macro
@@ -175,19 +149,19 @@ main proc
 main endp
 
 RunGameLoop proc
-	PROC_PROLOGUE
+	FRAME_PROLOGUE
 
 	; Render stuff
 	mov rcx, qwRendererPtr 
-	CALL_PROC SDL_RenderClear
+	CALL_C_FUNC SDL_RenderClear
 
 	;mov rdx, qwSnakePieceTextureBufferPtr
 	;mov r8, 0
 	;mov r9, 0
-	;CALL_PROC SDL_RenderTexture
+	;CALL_C_FUNC SDL_RenderTexture
 
 	mov rcx, qwRendererPtr
-	CALL_PROC SDL_RenderPresent
+	CALL_C_FUNC SDL_RenderPresent
 
 	; Pause execution
 	sub rsp, 32
@@ -195,22 +169,28 @@ RunGameLoop proc
 	call SDL_Delay
 	add rsp, 32
 
-	PROC_EPILOGUE
+	FRAME_EPILOGUE
 	ret
 RunGameLoop endp
 
 CreateGameResources proc
-	PROC_PROLOGUE
+	FRAME_PROLOGUE
 
 	; Create SDL texture
+	
+	mov rcx, qwRendererPtr
+	mov rdx, SDL_PIXELFORMAT_ARGB8888
+	mov r8, SDL_TEXTUREACCESS_STATIC
+	mov r9, SNAKE_PIECE_TEXTURE_WIDTH
 	push SNAKE_PIECE_TEXTURE_HEIGHT
-	CALL_PROC_ARG4 SDL_CreateTexture, qwRendererPtr, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STATIC, SNAKE_PIECE_TEXTURE_WIDTH
+	CALL_C_FUNC SDL_CreateTexture
 	pop r8
 	mov bSnakePieceTexturePtr, rax
 	mov r11, rax
 
 	; Allocate pixel data for snake piece texture
-	CALL_PROC_ARG1 malloc, SNAKE_PIECE_TEXTURE_BYTE_SIZE
+	mov rcx, SNAKE_PIECE_TEXTURE_BYTE_SIZE
+	CALL_C_FUNC malloc, SNAKE_PIECE_TEXTURE_BYTE_SIZE
 	mov qwSnakePieceTextureBufferPtr, rax
 
 	; Update texture with data
@@ -218,40 +198,41 @@ CreateGameResources proc
 	mov rdx, 0
 	mov r8, r11
 	mov r9, SNAKE_PIECE_TEXTURE_ROW_BYTE_SIZE
-	CALL_PROC SDL_UpdateTexture
+	CALL_C_FUNC SDL_UpdateTexture
 
-	PROC_EPILOGUE
+	FRAME_EPILOGUE
 	ret
 CreateGameResources endp
 
 DestroyGameResources proc
-	PROC_PROLOGUE
+	FRAME_PROLOGUE
 
 	; Deallocate pixel data
-	CALL_PROC_ARG1 free, qwSnakePieceTextureBufferPtr
+	mov rcx, qwSnakePieceTextureBufferPtr
+	CALL_C_FUNC free, qwSnakePieceTextureBufferPtr
 
-	PROC_EPILOGUE
+	FRAME_EPILOGUE
 	ret
 DestroyGameResources endp
 
 InitSDL proc
-	PROC_PROLOGUE
+	FRAME_PROLOGUE
 
 	mov rcx, SDL_INIT_VIDEO
-	CALL_PROC SDL_Init
+	CALL_C_FUNC SDL_Init
 
 	lea rcx, [bAppName]
 	mov rdx, WINDOW_WIDTH
 	mov r8, WINDOW_HEIGHT
 	mov r9, 0
-	CALL_PROC SDL_CreateWindow
+	CALL_C_FUNC SDL_CreateWindow
 	mov bWindowPtr, rax
 
 	mov rcx, rax
 	mov rdx, 0
 	mov r8, SDL_RENDERER_ACCELERATED
 	or r8, SDL_RENDERER_PRESENTVSYNC
-	CALL_PROC SDL_CreateRenderer
+	CALL_C_FUNC SDL_CreateRenderer
 	mov qwRendererPtr, rax
 
 	mov rcx, rax
@@ -259,25 +240,25 @@ InitSDL proc
 	mov r8, 0
 	mov r9, 0
 	push 255
-	CALL_PROC SDL_SetRenderDrawColor
+	CALL_C_FUNC SDL_SetRenderDrawColor
 	pop r8
 
-	PROC_EPILOGUE
+	FRAME_EPILOGUE
 	ret
 InitSDL endp
 
 QuitSDL proc
-	PROC_PROLOGUE
+	FRAME_PROLOGUE
 
 	mov rcx, qwRendererPtr
-	CALL_PROC SDL_DestroyRenderer
+	CALL_C_FUNC SDL_DestroyRenderer
 
 	mov rcx, bWindowPtr
-	CALL_PROC SDL_DestroyWindow
+	CALL_C_FUNC SDL_DestroyWindow
 
-	CALL_PROC SDL_Quit
+	CALL_C_FUNC SDL_Quit
 	
-	PROC_EPILOGUE
+	FRAME_EPILOGUE
 
 	ret
 QuitSDL endp
