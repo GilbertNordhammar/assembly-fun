@@ -178,9 +178,8 @@ SNAKE_PIECE_TEXTURE_BYTE_SIZE equ SNAKE_PIECE_TEXTURE_WIDTH * SNAKE_PIECE_TEXTUR
 bAppNameStr byte "Snake", 0
 qwWindowPtr qword 0
 qwRendererPtr qword 0
-qwSnakePieceTexturePtr qword 0
-qwSnakePieceTextureBufferPtr qword 0
-qwSDLEventPtr qword 0
+qwColorBufferSDLTexturePtr qword 0
+qwColorBufferPtr qword 0
 
 .code
 ; Functions
@@ -209,7 +208,7 @@ RunGameLoop proc
 		mov rcx, qwRendererPtr 
 		CALL_C_FUNC SDL_RenderClear
 		
-		mov rdx, qwSnakePieceTextureBufferPtr
+		mov rdx, qwColorBufferPtr
 		mov r8, 0
 		mov r9, 0
 		CALL_C_FUNC SDL_RenderTexture
@@ -257,13 +256,13 @@ CreateGameResources proc
 	push SNAKE_PIECE_TEXTURE_HEIGHT
 	CALL_C_FUNC SDL_CreateTexture
 	pop r8
-	mov qwSnakePieceTexturePtr, rax
+	mov qwColorBufferSDLTexturePtr, rax
 	mov r11, rax
 
 	; Allocate pixel data for snake piece texture
 	mov rcx, SNAKE_PIECE_TEXTURE_BYTE_SIZE
 	CALL_C_FUNC malloc, SNAKE_PIECE_TEXTURE_BYTE_SIZE
-	mov qwSnakePieceTextureBufferPtr, rax
+	mov qwColorBufferPtr, rax
 
 	; Update texture with data
 	mov rcx, rax
@@ -280,8 +279,8 @@ DestroyGameResources proc
 	FRAME_PROLOGUE
 
 	; Deallocate pixel data
-	mov rcx, qwSnakePieceTextureBufferPtr
-	CALL_C_FUNC free, qwSnakePieceTextureBufferPtr
+	mov rcx, qwColorBufferPtr
+	CALL_C_FUNC free, qwColorBufferPtr
 
 	FRAME_EPILOGUE
 	ret
