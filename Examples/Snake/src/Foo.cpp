@@ -48,19 +48,7 @@ int mainz(int argc, char** argv)
     bool leftMouseButtonDown = false;
     bool quit = false;
     SDL_Event event;
-    
-    int a = offsetof(SDL_Event, key.type);
-    int b = offsetof(SDL_Event, key.timestamp);
-    int c = offsetof(SDL_Event, key.windowID);
-    int d = offsetof(SDL_Event, key.state);
-    int e = offsetof(SDL_Event, key.repeat);
-    int f = offsetof(SDL_Event, key.padding2);
-    int g = offsetof(SDL_Event, key.padding3);
-    int h = offsetof(SDL_Event, key.keysym);
-    int size2 = sizeof(SDL_Keysym);
-    int size = sizeof(SDL_KeyboardEvent);
-
-
+  
     SDL_Init(SDL_INIT_VIDEO);
 
     SDL_Window* window = SDL_CreateWindow("SDL2 Pixel Drawing", 640, 480, 0);
@@ -115,7 +103,7 @@ int mainz(int argc, char** argv)
 
 
         SDL_RenderClear(renderer);
-        SDL_RenderTexture(renderer, texture, NULL, &offset);
+        SDL_RenderTexture(renderer, texture, nullptr, nullptr);
         SDL_RenderPresent(renderer);
     }
 

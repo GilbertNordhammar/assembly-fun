@@ -167,12 +167,11 @@ format0 db "Number of processors: %d retlen: 0x%x retval: 0x%x", 13, 10, 0
 WINDOW_WIDTH equ 640
 WINDOW_HEIGHT equ 480
 
-SNAKE_PIECE_TEXTURE_WIDTH equ 200
-SNAKE_PIECE_TEXTURE_HEIGHT equ 200
-SNAKE_PIECE_TEXTURE_PIXEL_DEPTH equ 4
-SNAKE_PIECE_TEXTURE_ROW_BYTE_SIZE equ SNAKE_PIECE_TEXTURE_WIDTH * SNAKE_PIECE_TEXTURE_PIXEL_DEPTH
-SNAKE_PIECE_TEXTURE_BYTE_SIZE equ SNAKE_PIECE_TEXTURE_WIDTH * SNAKE_PIECE_TEXTURE_HEIGHT * SNAKE_PIECE_TEXTURE_PIXEL_DEPTH
-
+COLOR_BUFFER_TEXTURE_WIDTH equ WINDOW_WIDTH
+COLOR_BUFFER_TEXTURE_HEIGHT equ WINDOW_HEIGHT
+COLOR_BUFFER_PIXEL_DEPTH equ 4
+COLOR_BUFFER_ROW_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_PIXEL_DEPTH
+COLOR_BUFFER_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_TEXTURE_HEIGHT * COLOR_BUFFER_PIXEL_DEPTH
 
 ; Variables
 bAppNameStr byte "Snake", 0
@@ -208,7 +207,8 @@ RunGameLoop proc
 		mov rcx, qwRendererPtr 
 		CALL_C_FUNC SDL_RenderClear
 		
-		mov rdx, qwColorBufferPtr
+		mov rcx, qwRendererPtr 
+		mov rdx, qwColorBufferSDLTexturePtr
 		mov r8, 0
 		mov r9, 0
 		CALL_C_FUNC SDL_RenderTexture
@@ -252,23 +252,38 @@ CreateGameResources proc
 	mov rcx, qwRendererPtr
 	mov rdx, SDL_PIXELFORMAT_ARGB8888
 	mov r8, SDL_TEXTUREACCESS_STATIC
-	mov r9, SNAKE_PIECE_TEXTURE_WIDTH
-	push SNAKE_PIECE_TEXTURE_HEIGHT
-	CALL_C_FUNC SDL_CreateTexture
-	pop r8
+	mov r9, COLOR_BUFFER_TEXTURE_WIDTH
+	;push COLOR_BUFFER_TEXTURE_HEIGHT
+	;CALL_C_FUNC SDL_CreateTexture
+	;sub rsp, 8
+	push COLOR_BUFFER_TEXTURE_HEIGHT
+	sub rsp, 32
+	call SDL_CreateTexture
+	add rsp, 32
+	add rsp, 8
+
 	mov qwColorBufferSDLTexturePtr, rax
-	mov r11, rax
+	mov r13, rax ; SDL texture ptr
 
 	; Allocate pixel data for snake piece texture
-	mov rcx, SNAKE_PIECE_TEXTURE_BYTE_SIZE
-	CALL_C_FUNC malloc, SNAKE_PIECE_TEXTURE_BYTE_SIZE
+	mov rcx, COLOR_BUFFER_BYTE_SIZE
+	CALL_C_FUNC malloc
 	mov qwColorBufferPtr, rax
+	mov r12, rax ; Color buffer ptr
 
-	; Update texture with data
-	mov rcx, rax
+	; Initialize color buffer
+	;xor rsi, rsi
+	mov rdi, r12 ; destination
+	mov eax, 0FF00FFFFh ; source
+	mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
+	cld
+	rep stosd
+
+	; Update SDL texture with data
+	mov rcx, r13 ; SDL texture ptr
 	mov rdx, 0
-	mov r8, r11
-	mov r9, SNAKE_PIECE_TEXTURE_ROW_BYTE_SIZE
+	mov r8, r12 ; Color buffer ptr
+	mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
 	CALL_C_FUNC SDL_UpdateTexture
 
 	FRAME_EPILOGUE
@@ -280,7 +295,7 @@ DestroyGameResources proc
 
 	; Deallocate pixel data
 	mov rcx, qwColorBufferPtr
-	CALL_C_FUNC free, qwColorBufferPtr
+	CALL_C_FUNC free
 
 	FRAME_EPILOGUE
 	ret
