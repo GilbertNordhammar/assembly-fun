@@ -99,14 +99,6 @@ STACK_DEALLOCATE macro size:REQ
 	add rsp, size
 endm
 
-ALLOCATE_SHADOW_SPACE macro
-	sub rsp, 40 ; Allocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from FRAME_PROLOGUE
-endm
-
-DEALLOCATE_SHADOW_SPACE macro
-	add rsp, 40 ; Deallocate 32 bytes shadow space + 8 bytes for 16-byte aligning stack from FRAME_PROLOGUE
-endm
-
 FRAME_PROLOGUE macro
 	push rbp
 	mov rbp, rsp
@@ -118,9 +110,11 @@ FRAME_EPILOGUE macro
 endm
 
 CALL_C_FUNC macro func:REQ
-	ALLOCATE_SHADOW_SPACE
+	mov r12, rsp ; Save old stack pointer
+	and rsp, 0fffffff0h ; 16-bit align stack pointer
+	sub rsp, 32 ; Allocate shadow space
 	call func
-	DEALLOCATE_SHADOW_SPACE
+	mov rsp, r12 ; Restore stack pointer
 endm
 
 SYSCALL_GET_SYSTEM_BASIC_INFO macro
@@ -253,14 +247,10 @@ CreateGameResources proc
 	mov rdx, SDL_PIXELFORMAT_ARGB8888
 	mov r8, SDL_TEXTUREACCESS_STATIC
 	mov r9, COLOR_BUFFER_TEXTURE_WIDTH
-	;push COLOR_BUFFER_TEXTURE_HEIGHT
-	;CALL_C_FUNC SDL_CreateTexture
-	;sub rsp, 8
+	
 	push COLOR_BUFFER_TEXTURE_HEIGHT
-	sub rsp, 32
-	call SDL_CreateTexture
-	add rsp, 32
-	add rsp, 8
+	CALL_C_FUNC SDL_CreateTexture
+	sub rsp, 8
 
 	mov qwColorBufferSDLTexturePtr, rax
 	mov r13, rax ; SDL texture ptr
