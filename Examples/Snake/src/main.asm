@@ -21,7 +21,6 @@ SDL_Keysym struct
 	sym dd 0 ; SDL virtual key code - see ::SDL_Keycode for details
 	modifier dw 0 ; current key modifiers
 	unused dd 0
-
 SDL_Keysym ends
 
 SDL_KeyboardEvent struct
@@ -167,12 +166,37 @@ COLOR_BUFFER_PIXEL_DEPTH equ 4
 COLOR_BUFFER_ROW_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_PIXEL_DEPTH
 COLOR_BUFFER_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_TEXTURE_HEIGHT * COLOR_BUFFER_PIXEL_DEPTH
 
+SQUARE_STATE_INACTIVE equ 0
+SQUARE_STATE_ACTIVE equ 1
+SNAKE_DIRECTION_UP equ 00b
+SNAKE_DIRECTION_RIGHT equ 01b
+SNAKE_DIRECTION_DOWN equ 10b
+SNAKE_DIRECTION_LEFT equ 11b
+
+SQUARE_BYTE_SIZE equ sizeof byte
+GRID_WIDTH equ 20
+GRID_HEIGHT equ 20
+GRID_BYTE_SIZE equ GRID_WIDTH * GRID_HEIGHT * SQUARE_BYTE_SIZE
+
+; Types
+Snake struct
+	qwSquareIndicesListPtr dw 0
+	bLength db 0
+	bDirection db SNAKE_DIRECTION_UP
+Snake ends
+
+SNAKE_BYTE_SIZE equ sizeof Snake
+
 ; Variables
 bAppNameStr byte "Snake", 0
 qwWindowPtr qword 0
 qwRendererPtr qword 0
 qwColorBufferSDLTexturePtr qword 0
 qwColorBufferPtr qword 0
+qwSquareListPtr qword 0
+
+;evnt SDL_Event <>
+playerSnake Snake { 0, 1, SNAKE_DIRECTION_UP }
 
 .code
 ; Functions
@@ -187,6 +211,7 @@ main proc
 	call DestroyGameResources
 	call QuitSDL
 
+
 	ret
 main endp
 
@@ -194,7 +219,16 @@ RunGameLoop proc
 	FRAME_PROLOGUE
 
 	STACK_ALLOCATE SDL_Event_BYTE_SIZE
-	mov r14, rax
+	
+	mov r13, rax ; SDLevent
+	lea r14, playerSnake
+
+
+	;Snake struct
+	;	qwSquareIndicesListPtr dw 0
+	;	bLength db 0
+	;	bDirection db SQUARE_STATE_DIRECTION_UP
+	;Snake ends
 
 	GameLoop:
 		; Render stuff
@@ -211,12 +245,12 @@ RunGameLoop proc
 		CALL_C_FUNC SDL_RenderPresent
 		
 		; Poll SDL event
-		mov rcx, r14
+		mov rcx, r13
 		CALL_C_FUNC SDL_WaitEvent
 		
-		mov eax, [r14].SDL_KeyboardEvent.eventType
-		mov ecx, [r14].SDL_KeyboardEvent.keysym.sym
-		mov r8d, [r14].SDL_KeyboardEvent.eventType
+		mov eax, [r13].SDL_KeyboardEvent.eventType
+		mov ecx, [r13].SDL_KeyboardEvent.keysym.sym
+		mov r8d, [r13].SDL_KeyboardEvent.eventType
 
 		cmp eax, SDL_EVENT_QUIT
 			je ExitGameLoop
@@ -224,12 +258,20 @@ RunGameLoop proc
 			jne GameLoop
 			cmp ecx, SDL_KEYCODE_W
 				je ExitGameLoop
+				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_UP
+				;je GameLoop
 			cmp ecx, SDL_KEYCODE_S
 				je ExitGameLoop
+				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_DOWN
+				;je GameLoop
 			cmp ecx, SDL_KEYCODE_A
 				je ExitGameLoop
+				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_RIGHT
+				;je GameLoop
 			cmp ecx, SDL_KEYCODE_D
 				je ExitGameLoop
+				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_LEFT
+				;je GameLoop
 
 		jmp GameLoop
 	ExitGameLoop:
@@ -276,6 +318,11 @@ CreateGameResources proc
 	mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
 	CALL_C_FUNC SDL_UpdateTexture
 
+	; Allocate grid
+	mov rcx, GRID_BYTE_SIZE
+	CALL_C_FUNC malloc
+	mov qwSquareListPtr, rax
+
 	FRAME_EPILOGUE
 	ret
 CreateGameResources endp
@@ -286,6 +333,11 @@ DestroyGameResources proc
 	; Deallocate pixel data
 	mov rcx, qwColorBufferPtr
 	CALL_C_FUNC free
+
+	mov rcx, qwSquareListPtr
+	CALL_C_FUNC free
+
+	; TODO: Destroy SDL resources
 
 	FRAME_EPILOGUE
 	ret
