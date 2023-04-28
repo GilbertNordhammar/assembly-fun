@@ -175,10 +175,10 @@ SNAKE_PIECE_TEXTURE_BYTE_SIZE equ SNAKE_PIECE_TEXTURE_WIDTH * SNAKE_PIECE_TEXTUR
 
 
 ; Variables
-bAppName byte "Snake", 0
-bWindowPtr qword 0
+bAppNameStr byte "Snake", 0
+qwWindowPtr qword 0
 qwRendererPtr qword 0
-bSnakePieceTexturePtr qword 0
+qwSnakePieceTexturePtr qword 0
 qwSnakePieceTextureBufferPtr qword 0
 qwSDLEventPtr qword 0
 
@@ -257,7 +257,7 @@ CreateGameResources proc
 	push SNAKE_PIECE_TEXTURE_HEIGHT
 	CALL_C_FUNC SDL_CreateTexture
 	pop r8
-	mov bSnakePieceTexturePtr, rax
+	mov qwSnakePieceTexturePtr, rax
 	mov r11, rax
 
 	; Allocate pixel data for snake piece texture
@@ -293,12 +293,12 @@ InitSDL proc
 	mov rcx, SDL_INIT_VIDEO
 	CALL_C_FUNC SDL_Init
 
-	lea rcx, [bAppName]
+	lea rcx, [bAppNameStr]
 	mov rdx, WINDOW_WIDTH
 	mov r8, WINDOW_HEIGHT
 	mov r9, 0
 	CALL_C_FUNC SDL_CreateWindow
-	mov bWindowPtr, rax
+	mov qwWindowPtr, rax
 
 	mov rcx, rax
 	mov rdx, 0
@@ -325,7 +325,7 @@ QuitSDL proc
 	mov rcx, qwRendererPtr
 	CALL_C_FUNC SDL_DestroyRenderer
 
-	mov rcx, bWindowPtr
+	mov rcx, qwWindowPtr
 	CALL_C_FUNC SDL_DestroyWindow
 
 	CALL_C_FUNC SDL_Quit
