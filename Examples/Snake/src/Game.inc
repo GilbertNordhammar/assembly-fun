@@ -84,22 +84,22 @@ RunGameLoop proc
 			je ExitGameLoop
 		cmp eax, SDL_EVENT_KEY_DOWN
 			jne GameLoop
+			
 			cmp ecx, SDL_KEYCODE_W
-				je ExitGameLoop
-				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_UP
-				;je GameLoop
+				mov r15b, SNAKE_DIRECTION_UP 
+				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_S
-				je ExitGameLoop
-				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_DOWN
-				;je GameLoop
+				mov r15b, SNAKE_DIRECTION_DOWN
+				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_A
-				je ExitGameLoop
-				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_RIGHT
-				;je GameLoop
+				mov r15b, SNAKE_DIRECTION_RIGHT
+				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_D
-				je ExitGameLoop
-				;cmove [r14].Snake.bDirection, SNAKE_DIRECTION_LEFT
-				;je GameLoop
+				mov r15b, SNAKE_DIRECTION_LEFT
+				je EndOfInputPolling
+			
+			EndOfInputPolling:
+				mov [r14].Snake.bDirection, r15b
 
 		jmp GameLoop
 	ExitGameLoop:
