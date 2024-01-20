@@ -27,6 +27,8 @@ GRID_WIDTH equ 20
 GRID_HEIGHT equ 20
 GRID_BYTE_SIZE equ GRID_WIDTH * GRID_HEIGHT * SQUARE_BYTE_SIZE
 
+CLEAR_COLOR equ 0FF00FF00h
+
 ; Types
 Snake struct
 	qwSquareIndicesListPtr dw 0
@@ -59,7 +61,24 @@ RunGameLoop proc
 	lea r14, playerSnake
 
 	GameLoop:
-		; Render stuff
+		mov r11, qwColorBufferPtr
+		mov r12, qwColorBufferSDLTexturePtr
+
+		; Clear color buffer
+		mov rdi, r11 ; destination
+		mov eax, CLEAR_COLOR ; source
+		mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
+		cld ; Set direction to forwards
+		rep stosd
+	
+		; Update SDL texture with clear color
+		mov rcx, r12 ; SDL texture ptr
+		mov rdx, 0
+		mov r8, r11 ; Color buffer ptr
+		mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
+		CALL_C_FUNC SDL_UpdateTexture
+
+		; Render frame
 		mov rcx, qwRendererPtr 
 		CALL_C_FUNC SDL_RenderClear
 		
@@ -84,24 +103,26 @@ RunGameLoop proc
 			je ExitGameLoop
 		cmp eax, SDL_EVENT_KEY_DOWN
 			jne GameLoop
-			
 			cmp ecx, SDL_KEYCODE_W
-				mov r15b, SNAKE_DIRECTION_UP 
+				mov r9b, SNAKE_DIRECTION_UP
+				cmove r15d, r9d
 				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_S
-				mov r15b, SNAKE_DIRECTION_DOWN
+				mov r9b, SNAKE_DIRECTION_DOWN
+				cmove r15d, r9d
 				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_A
-				mov r15b, SNAKE_DIRECTION_RIGHT
+				mov r9b, SNAKE_DIRECTION_LEFT
+				cmove r15d, r9d
 				je EndOfInputPolling
 			cmp ecx, SDL_KEYCODE_D
-				mov r15b, SNAKE_DIRECTION_LEFT
+				mov r9b, SNAKE_DIRECTION_RIGHT
+				cmove r15d, r9d
 				je EndOfInputPolling
 			
 			EndOfInputPolling:
 				mov [r14].Snake.bDirection, r15b
-
-		jmp GameLoop
+				jmp GameLoop
 	ExitGameLoop:
 
 	FRAME_EPILOGUE
@@ -132,19 +153,18 @@ CreateGameResources proc
 	mov r12, rax ; Color buffer ptr
 
 	; Initialize color buffer
-	;xor rsi, rsi
-	mov rdi, r12 ; destination
-	mov eax, 0FF00FFFFh ; source
-	mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
-	cld
-	rep stosd
-
-	; Update SDL texture with data
-	mov rcx, r13 ; SDL texture ptr
-	mov rdx, 0
-	mov r8, r12 ; Color buffer ptr
-	mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
-	CALL_C_FUNC SDL_UpdateTexture
+	; mov rdi, r12 ; destination
+	; mov eax, 0000000FFh ; source
+	; mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
+	; cld
+	; rep stosd
+	; 
+	; ; Update SDL texture with data
+	; mov rcx, r13 ; SDL texture ptr
+	; mov rdx, 0
+	; mov r8, r12 ; Color buffer ptr
+	; mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
+	; CALL_C_FUNC SDL_UpdateTexture
 
 	; Allocate grid
 	mov rcx, GRID_BYTE_SIZE

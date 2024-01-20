@@ -24,7 +24,7 @@
              - In subtraction operations, if we subtract a larger number from a smaller one requiring borrowing which cannot be done, then CF is set.
             Moreover, certain shift and rotate instructions also affect the Carry Flag. For example:
              - The SHL and SHR instructions put last shifted out bit into CF.
-             - RCL and RCR Rotate through carry left / right which use CF as part of rotation scheme besides normal bits within operand involved .
+             - RCL and RCR Rotate through carry left / right which use CF as part of rotation scheme besides normal bits within operand involved.
 
 
 
