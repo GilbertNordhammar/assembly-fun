@@ -1,0 +1,45 @@
+=== Registers ===
+
+* OV (Overflow): If this flag is set (1), it means an arithmetic overflow has occurred; 
+                 that is, a computation has resulted in a value that is too large to be represented within the number of bits designated for its representation.
+
+* UP (Direction): The direction flag controls string instructions like lodsb and movsb. 
+                  When UP=1, the processor auto-decrements (accesses occur from higher memory addresses to lower ones). 
+                  When UP=0, it auto-increments after each operation which means accesses happen from lower memory address to higher ones.
+
+* EI (Interrupt Enable): If this flag is 1, then interrupts are enabled; if 0, they're disabled.
+
+* PL (Sign): This flag indicates the sign of a data item following an arithmetic operation. 
+             It is set equal to the most significant bit of data item which will be 1 if negative outcome occurs as per two's complement notation.
+
+* ZR (Zero): Set when an instruction results in zero as output.
+
+* AC (Auxiliary Carry) : This Flag will carry/borrow for BCD numbers(4-bit Binary-Coded Decimal).
+
+* PE (Parity) : Indicates even parity for low-order byte: PE = 1 shows even parity and vice versa.
+
+* CY (Carry) The Carry Flag (CF) is a status flag that indicates when an arithmetic operation has resulted in a carry (in addition) or borrow (in subtraction).
+             - In addition operations, if the result of an operation exceeds the maximum value that can fit into a register, then CF is set. 
+              If there's no overflow from the most significant bit (MSB), then it remains clear.
+             - In subtraction operations, if we subtract a larger number from a smaller one requiring borrowing which cannot be done, then CF is set.
+            Moreover, certain shift and rotate instructions also affect the Carry Flag. For example:
+             - The SHL and SHR instructions put last shifted out bit into CF.
+             - RCL and RCR Rotate through carry left / right which use CF as part of rotation scheme besides normal bits within operand involved .
+
+
+
+* RIP: The Instruction Pointer register (RIP) holds the memory address of the next instruction that will be executed. 
+       It is automatically updated as instructions are fetched and executed by the CPU.
+       RIP changes with each instruction being executed.
+
+RSP: The Stack Pointer register (RSP) points to the top of the current stack frame in memory. 
+     This stack keeps track of function call return addresses, passed parameters, and local variables.
+     RSP changes whenever something is pushed onto / popped off from stack.
+
+RBP: The Base Pointer register (RBP) usually points to a fixed location within a method's stack frame (often its base)
+     , and it can help keep track of variables and arguments even if RSP moves around due to pushes or pops during a function execution.
+     RBP may change at start/end functions if it’s used for setting up new base pointer reference within those contexts 
+
+EFL/RFLAGS: EFL Register sometimes also known as RFLAGS on 64-bit platforms, 
+            holds certain status flags that indicate results from previous operations performed by CPU 
+            - like whether last operation caused an overflow or underflow condition or was result zero etc .
