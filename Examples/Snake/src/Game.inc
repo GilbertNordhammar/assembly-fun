@@ -6,14 +6,15 @@ include ASM_Utils.inc
 .data
 
 ; Constants
-WINDOW_WIDTH equ 640
-WINDOW_HEIGHT equ 480
+WINDOW_PIXEL_WIDTH equ 640
+WINDOW_PIXEL_HEIGHT equ 640
 
-COLOR_BUFFER_TEXTURE_WIDTH equ WINDOW_WIDTH
-COLOR_BUFFER_TEXTURE_HEIGHT equ WINDOW_HEIGHT
+COLOR_BUFFER_PIXEL_WIDTH equ WINDOW_PIXEL_WIDTH
+COLOR_BUFFER_PIXEL_HEIGHT equ WINDOW_PIXEL_HEIGHT
+COLOR_BUFFER_PIXEL_SIZE equ COLOR_BUFFER_PIXEL_WIDTH * COLOR_BUFFER_PIXEL_HEIGHT
 COLOR_BUFFER_PIXEL_DEPTH equ 4
-COLOR_BUFFER_ROW_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_PIXEL_DEPTH
-COLOR_BUFFER_BYTE_SIZE equ COLOR_BUFFER_TEXTURE_WIDTH * COLOR_BUFFER_TEXTURE_HEIGHT * COLOR_BUFFER_PIXEL_DEPTH
+COLOR_BUFFER_ROW_BYTE_SIZE equ COLOR_BUFFER_PIXEL_WIDTH * COLOR_BUFFER_PIXEL_DEPTH
+COLOR_BUFFER_BYTE_SIZE equ COLOR_BUFFER_PIXEL_WIDTH * COLOR_BUFFER_PIXEL_HEIGHT * COLOR_BUFFER_PIXEL_DEPTH
 
 SQUARE_STATE_INACTIVE equ 0
 SQUARE_STATE_ACTIVE equ 1
@@ -22,12 +23,20 @@ SNAKE_DIRECTION_RIGHT equ 01b
 SNAKE_DIRECTION_DOWN equ 10b
 SNAKE_DIRECTION_LEFT equ 11b
 
-SQUARE_BYTE_SIZE equ sizeof byte
-GRID_WIDTH equ 20
-GRID_HEIGHT equ 20
-GRID_BYTE_SIZE equ GRID_WIDTH * GRID_HEIGHT * SQUARE_BYTE_SIZE
+CELL_PIXEL_WIDTH equ 20
+CELL_PIXEL_HEIGHT equ 20
+CELL_PIXEL_WIDTH_BYTE_SIZE equ CELL_PIXEL_WIDTH * COLOR_BUFFER_PIXEL_DEPTH
+CELL_PIXEL_BYTE_SIZE equ CELL_PIXEL_WIDTH * CELL_PIXEL_HEIGHT * COLOR_BUFFER_PIXEL_DEPTH
 
-CLEAR_COLOR equ 0FF00FF00h
+SQUARE_BYTE_SIZE equ sizeof byte
+GRID_CELL_WIDTH equ COLOR_BUFFER_PIXEL_WIDTH / CELL_PIXEL_WIDTH
+GRID_CELL_HEIGHT equ COLOR_BUFFER_PIXEL_HEIGHT / CELL_PIXEL_HEIGHT
+GRID_BYTE_SIZE equ GRID_CELL_WIDTH * GRID_CELL_HEIGHT * SQUARE_BYTE_SIZE
+GRID_CELL_ROW_PIXEL_BYTE_SIZE equ GRID_CELL_WIDTH * CELL_PIXEL_BYTE_SIZE
+
+
+CLEAR_COLOR equ 0FF000000h
+SNAKE_COLOR equ 0FFFFFFFFh
 
 ; Types
 Snake struct
@@ -44,7 +53,7 @@ qwWindowPtr qword 0
 qwRendererPtr qword 0
 qwColorBufferSDLTexturePtr qword 0
 qwColorBufferPtr qword 0
-qwSquareListPtr qword 0
+qwGridPtr qword 0
 
 ;evnt SDL_Event <>
 playerSnake Snake { 0, 1, SNAKE_DIRECTION_UP }
@@ -67,11 +76,16 @@ RunGameLoop proc
 		; Clear color buffer
 		mov rdi, r11 ; destination
 		mov eax, CLEAR_COLOR ; source
-		mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
+		mov ecx, COLOR_BUFFER_PIXEL_SIZE ; Number of dwords to write
 		cld ; Set direction to forwards
 		rep stosd
-	
-		; Update SDL texture with clear color
+
+		mov ecx, 2 ; Row index
+		mov edx, 2; Column index
+		mov r8d, SNAKE_COLOR
+		call ColorCell
+
+		; Present color buffer to screen
 		mov rcx, r12 ; SDL texture ptr
 		mov rdx, 0
 		mov r8, r11 ; Color buffer ptr
@@ -130,6 +144,45 @@ RunGameLoop proc
 	ret
 RunGameLoop endp
 
+; ecx = cell row index, edx = cell column index, r8d = color
+ColorCell proc
+	FRAME_PROLOGUE
+
+	push r11
+	push r12
+
+	mov r11, qwColorBufferPtr
+
+	; Add pixel offset for column
+	mov eax, CELL_PIXEL_WIDTH_BYTE_SIZE
+	mul edx
+	add r11, rax
+
+	; Add pixel offset for row
+	mov eax, GRID_CELL_ROW_PIXEL_BYTE_SIZE
+	mul ecx
+	add r11, rax
+
+	mov r12, CELL_PIXEL_HEIGHT
+	mov eax, r8d ; color value (source)
+	cld ; Set direction to forwards
+	ColorCellRow:
+		mov rdi, r11 ; offsetet color buffer ptr (destination)
+		mov ecx, CELL_PIXEL_WIDTH ; Number of pixels (dw) to write
+		rep stosd ; Copy color into cell row pixels
+
+		add r11, COLOR_BUFFER_ROW_BYTE_SIZE ; Increment pixel row
+
+		dec r12
+		jnz ColorCellRow
+
+	pop r12
+	pop r11
+
+	FRAME_EPILOGUE
+	ret
+ColorCell endp
+
 CreateGameResources proc
 	FRAME_PROLOGUE
 
@@ -137,9 +190,9 @@ CreateGameResources proc
 	mov rcx, qwRendererPtr
 	mov rdx, SDL_PIXELFORMAT_ARGB8888
 	mov r8, SDL_TEXTUREACCESS_STATIC
-	mov r9, COLOR_BUFFER_TEXTURE_WIDTH
+	mov r9, COLOR_BUFFER_PIXEL_WIDTH
 	
-	push COLOR_BUFFER_TEXTURE_HEIGHT
+	push COLOR_BUFFER_PIXEL_HEIGHT
 	CALL_C_FUNC SDL_CreateTexture
 	sub rsp, 8
 
@@ -152,24 +205,10 @@ CreateGameResources proc
 	mov qwColorBufferPtr, rax
 	mov r12, rax ; Color buffer ptr
 
-	; Initialize color buffer
-	; mov rdi, r12 ; destination
-	; mov eax, 0000000FFh ; source
-	; mov ecx, COLOR_BUFFER_BYTE_SIZE / 4 ; Number of dwords to write
-	; cld
-	; rep stosd
-	; 
-	; ; Update SDL texture with data
-	; mov rcx, r13 ; SDL texture ptr
-	; mov rdx, 0
-	; mov r8, r12 ; Color buffer ptr
-	; mov r9, COLOR_BUFFER_ROW_BYTE_SIZE
-	; CALL_C_FUNC SDL_UpdateTexture
-
 	; Allocate grid
 	mov rcx, GRID_BYTE_SIZE
 	CALL_C_FUNC malloc
-	mov qwSquareListPtr, rax
+	mov qwGridPtr, rax
 
 	FRAME_EPILOGUE
 	ret
@@ -182,7 +221,7 @@ DestroyGameResources proc
 	mov rcx, qwColorBufferPtr
 	CALL_C_FUNC free
 
-	mov rcx, qwSquareListPtr
+	mov rcx, qwGridPtr
 	CALL_C_FUNC free
 
 	; TODO: Destroy SDL resources
@@ -198,8 +237,8 @@ InitSDL proc
 	CALL_C_FUNC SDL_Init
 
 	lea rcx, [bAppNameStr]
-	mov rdx, WINDOW_WIDTH
-	mov r8, WINDOW_HEIGHT
+	mov rdx, WINDOW_PIXEL_WIDTH
+	mov r8, WINDOW_PIXEL_HEIGHT
 	mov r9, 0
 	CALL_C_FUNC SDL_CreateWindow
 	mov qwWindowPtr, rax
