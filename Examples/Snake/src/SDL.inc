@@ -40,8 +40,6 @@ SDL_Event union
 	byte 128 dup(0)
 SDL_Event ends
 
-SDL_Event_BYTE_SIZE equ 128
-
 .code
 ; SDL functions
 extern SDL_CreateWindow : proc

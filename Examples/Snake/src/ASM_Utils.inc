@@ -25,6 +25,7 @@ FRAME_EPILOGUE macro
 	pop rbp
 endm
 
+; TODO: Restore r12 (aka make it non-volatile)
 CALL_C_FUNC macro func:REQ
 	mov r12, rsp ; Save old stack pointer
 	and rsp, 0fffffff0h ; 16-bit align stack pointer

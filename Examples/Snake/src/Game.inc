@@ -18,10 +18,12 @@ COLOR_BUFFER_BYTE_SIZE equ COLOR_BUFFER_PIXEL_WIDTH * COLOR_BUFFER_PIXEL_HEIGHT 
 
 SQUARE_STATE_INACTIVE equ 0
 SQUARE_STATE_ACTIVE equ 1
+
 SNAKE_DIRECTION_UP equ 00b
 SNAKE_DIRECTION_RIGHT equ 01b
 SNAKE_DIRECTION_DOWN equ 10b
 SNAKE_DIRECTION_LEFT equ 11b
+SNAKE_DIRECTION_BIT_SIZE equ 2
 
 CELL_PIXEL_WIDTH equ 20
 CELL_PIXEL_HEIGHT equ 20
@@ -34,18 +36,23 @@ GRID_CELL_HEIGHT equ COLOR_BUFFER_PIXEL_HEIGHT / CELL_PIXEL_HEIGHT
 GRID_BYTE_SIZE equ GRID_CELL_WIDTH * GRID_CELL_HEIGHT * SQUARE_BYTE_SIZE
 GRID_CELL_ROW_PIXEL_BYTE_SIZE equ GRID_CELL_WIDTH * CELL_PIXEL_BYTE_SIZE
 
-
 CLEAR_COLOR equ 0FF000000h
 SNAKE_COLOR equ 0FFFFFFFFh
 
-; Types
-Snake struct
-	qwSquareIndicesListPtr dw 0
-	bLength db 0
-	bDirection db SNAKE_DIRECTION_UP
-Snake ends
+SNAKE_START_LENGTH equ 3
+SNAKE_START_POS_Y_OFFSET equ 1
+SNAKE_LENGTH_CAPACITY equ 128
 
-SNAKE_BYTE_SIZE equ sizeof Snake
+; Types
+SnakePiecePosition struct
+	bPosX byte 0
+	bPosY byte 0
+SnakePiecePosition ends
+
+Food struct
+	bPosX byte 0
+	bPosY byte 0
+Food ends
 
 ; Variables
 bAppNameStr byte "Snake", 0
@@ -53,21 +60,18 @@ qwWindowPtr qword 0
 qwRendererPtr qword 0
 qwColorBufferSDLTexturePtr qword 0
 qwColorBufferPtr qword 0
-qwGridPtr qword 0
+sdlEvent SDL_Event { }
 
-;evnt SDL_Event <>
-playerSnake Snake { 0, 1, SNAKE_DIRECTION_UP }
+qwSnakePiecePositionsListPtr qword 0
+qwSnakePieceDirectionsListPtr qword 0
+bSnakePiecesListLenght byte SNAKE_START_LENGTH
+currentFood Food { 5, 5 }
 
 .code
 ; Functions
 
 RunGameLoop proc
 	FRAME_PROLOGUE
-
-	STACK_ALLOCATE SDL_Event_BYTE_SIZE
-	
-	mov r13, rax ; SDLevent
-	lea r14, playerSnake
 
 	GameLoop:
 		mov r11, qwColorBufferPtr
@@ -80,10 +84,25 @@ RunGameLoop proc
 		cld ; Set direction to forwards
 		rep stosd
 
-		mov ecx, 2 ; Row index
-		mov edx, 2; Column index
-		mov r8d, SNAKE_COLOR
-		call ColorCell
+		mov r13, qwSnakePiecePositionsListPtr
+		mov r14, qwSnakePiecePositionsListPtr ; End of snake pieces list
+		add r14b, bSnakePiecesListLenght
+		ProcessSnake: ; Since a snake piece is 2 bytes, we can process 4 pieces per memory load (aka loop iteration)
+			; Process piece 1
+			movzx ecx, [r13].SnakePiecePosition.bPosY
+			movzx edx, [r13].SnakePiecePosition.bPosX
+			mov r8d, SNAKE_COLOR ; Argument for ColorCell
+			call ColorCell
+			
+			; Process piece 2
+			movzx ecx, [r13 + (sizeof SnakePiecePosition)].SnakePiecePosition.bPosY
+			movzx edx, [r13 + (sizeof SnakePiecePosition)].SnakePiecePosition.bPosX
+			mov r8d, SNAKE_COLOR ; Argument for ColorCell
+			call ColorCell
+		
+			add r13, (sizeof SnakePiecePosition) * 2
+			cmp r13, r14
+			jl ProcessSnake
 
 		; Present color buffer to screen
 		mov rcx, r12 ; SDL texture ptr
@@ -106,9 +125,10 @@ RunGameLoop proc
 		CALL_C_FUNC SDL_RenderPresent
 		
 		; Poll SDL event
+		lea r13, sdlEvent
 		mov rcx, r13
 		CALL_C_FUNC SDL_WaitEvent
-		
+
 		mov eax, [r13].SDL_KeyboardEvent.eventType
 		mov ecx, [r13].SDL_KeyboardEvent.keysym.sym
 		mov r8d, [r13].SDL_KeyboardEvent.eventType
@@ -135,7 +155,7 @@ RunGameLoop proc
 				je EndOfInputPolling
 			
 			EndOfInputPolling:
-				mov [r14].Snake.bDirection, r15b
+				; mov [r14].Snake.bDirection, r15b
 				jmp GameLoop
 	ExitGameLoop:
 
@@ -191,10 +211,9 @@ CreateGameResources proc
 	mov rdx, SDL_PIXELFORMAT_ARGB8888
 	mov r8, SDL_TEXTUREACCESS_STATIC
 	mov r9, COLOR_BUFFER_PIXEL_WIDTH
-	
 	push COLOR_BUFFER_PIXEL_HEIGHT
 	CALL_C_FUNC SDL_CreateTexture
-	sub rsp, 8
+	sub rsp, 8 ; Is this line needed?
 
 	mov qwColorBufferSDLTexturePtr, rax
 	mov r13, rax ; SDL texture ptr
@@ -203,12 +222,32 @@ CreateGameResources proc
 	mov rcx, COLOR_BUFFER_BYTE_SIZE
 	CALL_C_FUNC malloc
 	mov qwColorBufferPtr, rax
-	mov r12, rax ; Color buffer ptr
 
-	; Allocate grid
-	mov rcx, GRID_BYTE_SIZE
+	; Allocate and initialize snake
+	mov rcx, SNAKE_LENGTH_CAPACITY * (sizeof SnakePiecePosition)
 	CALL_C_FUNC malloc
-	mov qwGridPtr, rax
+	mov qwSnakePiecePositionsListPtr, rax
+	mov r13, rax
+
+	mov rcx, SNAKE_LENGTH_CAPACITY * (sizeof byte)
+	CALL_C_FUNC malloc
+	mov qwSnakePieceDirectionsListPtr, rax
+
+	; qwSnakePieceDirectionsListPtr
+	mov r8b, SNAKE_START_LENGTH + SNAKE_START_POS_Y_OFFSET - 1 ; Head snake piece position y-pos and loop iterator
+	mov r9b, CELL_PIXEL_WIDTH / 2 ; Start x-pos
+	InitializeSnake:
+		mov [r13].SnakePiecePosition.bPosX, r9b
+		mov [r13].SnakePiecePosition.bPosY, r8b
+		add r13, sizeof SnakePiecePosition
+
+		; TODO: Initialize direction (2 bits per snake piece)
+		;mov r14, SNAKE_DIRECTION_DOWN
+		;mov [rax], r14
+
+		dec r8b
+		cmp r8b, SNAKE_START_POS_Y_OFFSET - 1
+		jne InitializeSnake
 
 	FRAME_EPILOGUE
 	ret
@@ -219,9 +258,6 @@ DestroyGameResources proc
 
 	; Deallocate pixel data
 	mov rcx, qwColorBufferPtr
-	CALL_C_FUNC free
-
-	mov rcx, qwGridPtr
 	CALL_C_FUNC free
 
 	; TODO: Destroy SDL resources
